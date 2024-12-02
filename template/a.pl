@@ -96,6 +96,7 @@ sub main {
     my $content = read_file($file_name);
 
     my @field = get_field($content);
+    p \@field;
 
     my $max_x = scalar(@{$field[0]})-1;
     my $max_y = scalar(@field)-1;
