@@ -13,6 +13,8 @@ use Time::HiRes qw(gettimeofday tv_interval);
 
 $Data::Dumper::Sortkeys = 1;
 
+my $FILES = {};
+
 sub p {
     say Dumper $_[0];
 }
@@ -99,15 +101,21 @@ sub get_memory_from_input {
     my @arr = split //, $content;
     my $id = 0;
 
+    my $j = 0;
     for (my $i = 0; $i < @arr; $i++) {
         my $char = $arr[$i];
         if ($i % 2 == 1) {
             foreach (1..$char) {
-                push @mem, '',
+                push @mem, '.';
+                $j++;
             }
         } else {
+            my $start = $j;
+            $FILES->{$start} = '.';
             foreach (1..$char) {
-                push @mem, $id,
+                push @mem, $id;
+                $FILES->{$start} .= $id;
+                $j+= length($id);
             }
             $id++;
         }
@@ -120,11 +128,7 @@ sub output_memory {
     my ($mem) = @_;
 
     foreach my $el (@{$mem}) {
-        if ($el eq '') {
-            print '.'
-        } else {
-            print $el;
-        }
+        print $el;
     }
 
     say '';
@@ -137,7 +141,7 @@ sub get_checksum {
     for (my $i = 0; $i < @{$mem}; $i++) {
         my $value = $mem->[$i];
 
-        if ($value ne '') {
+        if ($value ne '.') {
             $checksum += $i * $value;
         }
     }
@@ -163,7 +167,7 @@ sub part1 {
         while (1) {
             $value = pop @{$mem};
             $last_number_index--;
-            if ($value ne '') {
+            if ($value ne '.') {
                 last TMP;
             }
         }
@@ -181,7 +185,86 @@ sub part1 {
 
 }
 
+sub part2 {
+    my ($mem) = @_;
+
+    # hash; key - index of free block start; value - length of free block
+    my $free_spaces = get_free_spaces($mem);
+    my @free_indexes = sort { $a <=> $b } keys %{$free_spaces};
+#    p $free_spaces;
+#    p \@free_indexes;
+
+    # hash; key - file ID; value - index of first digit of file ID
+#    p $FILES;
+
+
+    MAIN:
+    foreach my $file_index (sort { $b <=> $a } keys %{$FILES}) {
+output_memory($mem);
+        my $file_value = $FILES->{$file_index};
+        my $file_value_length = length($file_value);
+
+        foreach my $free_index (@free_indexes) {
+p $free_index;
+
+            last MAIN if $free_index >= $file_index;
+
+            my $free_length = $free_spaces->{$free_index};
+            if ($free_length <= $file_value_length) {
+                put($mem, $free_index, $file_value);
+                put($mem, $file_index, '.'x$file_value_length);
+
+output_memory($mem);
+die;
+                next MAIN;
+            }
+        }
+
+output_memory($mem);
+        last; # TODO
+    }
+
+}
+
+sub put {
+    my ($mem, $i, $value) = @_;
+p $value;
+
+    my @arr = split //, $value;
+
+    while (my $el = shift @arr) {
+        $mem->[$i] = $el;
+        $i++;
+    }
+}
+
 sub get_free_spaces {
+    my ($mem) = @_;
+
+    my %h;
+    my $free_start = 0;
+    my $free_count = 0;
+
+    for (my $i = 0; $i < @{$mem}; $i++) {
+        if ($mem->[$i] eq '.') {
+            if (!$free_start) {
+                $free_start = $i;
+            }
+            $free_count++;
+        } else {
+            if ($free_start) {
+                $h{$free_start} = $free_count;
+                $free_start = 0;
+                $free_count = 0;
+            }
+        }
+
+    }
+
+    return \%h;
+}
+
+sub get_files {
     my ($mem) = @_;
 
     my %h;
@@ -225,6 +308,18 @@ sub get_first_free_index {
     return $min;
 }
 
+sub get_normalized_memory {
+    my ($mem) = @_;
+
+    my @mem2;
+    foreach my $el (@{$mem}) {
+        my @arr = split //, $el;
+        push @mem2, @arr;
+    }
+
+    return \@mem2;
+}
+
 sub main {
 
     my $answer = 0;
@@ -235,6 +330,8 @@ sub main {
     say 'Generating memory from input - start';
     my $t0 = [gettimeofday];
     my $mem = get_memory_from_input($content);
+
+    $mem = get_normalized_memory($mem);
     my $elapsed = tv_interval ( $t0, [gettimeofday]);
     say sprintf 'Generating memory from input - end - %s seconds', $elapsed;
     say '';
@@ -244,7 +341,7 @@ sub main {
 
     say 'Main logic - start';
     $t0 = [gettimeofday];
-    part1($mem);
+    part2($mem);
     $elapsed = tv_interval ( $t0, [gettimeofday]);
     say sprintf 'Main logic - end - %s seconds', $elapsed;
     say '';
@@ -257,7 +354,7 @@ sub main {
     say sprintf 'Calculate checksum - end - %s seconds', $elapsed;
     say '';
 
-    #output_memory($mem);
+#    output_memory($mem);
 
     say $checksum;
 
