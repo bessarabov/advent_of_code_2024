@@ -213,12 +213,23 @@ sub looks_like_christmas_tree {
         $field[$r->{y}]->[$r->{x}]++;
     }
 
-    foreach (1..4) {
-        return 0 if not defined $field[$tmp_y-$_]->[$tmp_x];
-        return 0 if not defined $field[$tmp_y-$_]->[$tmp_x];
+    my %h;
+
+    foreach my $x (0..$MAX_X) {
+        my $count = 0;
+        foreach my $y (0..$MAX_Y) {
+            $count++ if defined $field[$y]->[$x];
+        }
+        $h{$x} = $count;
     }
 
-    return 1;
+    foreach my $tmp (%h) {
+        if ($h{$tmp} > 35) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 sub main {
