@@ -213,18 +213,29 @@ sub looks_like_christmas_tree {
         $field[$r->{y}]->[$r->{x}]++;
     }
 
+
     my %h;
 
     foreach my $x (0..$MAX_X) {
-        my $count = 0;
-        foreach my $y (0..$MAX_Y) {
-            $count++ if defined $field[$y]->[$x];
+        foreach my $y (0..$MAX_X) {
+            $h{$x}++ if defined $field[$y]->[$x];
         }
-        $h{$x} = $count;
     }
 
-    foreach my $tmp (%h) {
-        if ($h{$tmp} > 35) {
+#    my %h;
+#
+#    foreach my $x (0..$MAX_X) {
+#        my $count = 0;
+#        foreach my $y (0..$MAX_Y) {
+#            $count++ if defined $field[$y]->[$x];
+#        }
+#        $h{$x} = $count;
+#    }
+#
+#p \%h;
+
+    foreach my $tmp (keys %h) {
+        if ($h{$tmp} > 30) {
             return 1;
         }
     }
@@ -309,7 +320,7 @@ sub main {
         if (looks_like_christmas_tree($robots)) {
             say "after $i sec:";
             output_robots($robots);
-            die;
+#            die;
         }
 
 
