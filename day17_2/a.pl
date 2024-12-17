@@ -114,14 +114,14 @@ sub run_op {
 # Combo operand 6 represents the value of register C.
 # Combo operand 7 is reserved and will not appear in valid programs.
 
-#    die if $value == 7 && $op != 4;
+    my $combo = $value;
 
     if ($value == 4) {
-        $value = $r->{A};
+        $combo = $r->{A};
     } elsif ($value == 5) {
-        $value = $r->{B};
+        $combo = $r->{B};
     } elsif ($value == 6) {
-        $value = $r->{C};
+        $combo = $r->{C};
     }
 
     if ($op == 0) {
@@ -131,7 +131,7 @@ sub run_op {
 # operand of 5 would divide A by 2^B.) The result of the division operation is
 # truncated to an integer and then written to the A register.
         my $numerator = $r->{A};
-        my $denominator = 2 ** $value;
+        my $denominator = 2 ** $combo;
 		my $result = int($numerator / $denominator);
 		$r->{A} = $result;
     } elsif ($op == 1) {
@@ -143,7 +143,7 @@ sub run_op {
 #The bst instruction (opcode 2) calculates the value of its combo operand
 #modulo 8 (thereby keeping only its lowest 3 bits), then writes that value to
 #the B register.
-		my $result = $value % 8;
+		my $result = $combo % 8;
 		$r->{B} = $result;
 
     } elsif ($op == 3) {
@@ -163,14 +163,14 @@ sub run_op {
 #The out instruction (opcode 5) calculates the value of its combo operand
 #modulo 8, then outputs that value. (If a program outputs multiple values, they
 #are separated by commas.)
-		my $result = $value % 8;
+		my $result = $combo % 8;
 		return { o => $result };
     } elsif ($op == 6) {
 #The bdv instruction (opcode 6) works exactly like the adv instruction except
 #that the result is stored in the B register. (The numerator is still read from
 #the A register.)
         my $numerator = $r->{A};
-        my $denominator = 2 ** $value;
+        my $denominator = 2 ** $combo;
 		my $result = int($numerator / $denominator);
 		$r->{B} = $result;
     } elsif ($op == 7) {
@@ -178,7 +178,7 @@ sub run_op {
 #that the result is stored in the C register. (The numerator is still read from
 #the A register.)
         my $numerator = $r->{A};
-        my $denominator = 2 ** $value;
+        my $denominator = 2 ** $combo;
 		my $result = int($numerator / $denominator);
 		$r->{C} = $result;
     } else {
@@ -226,7 +226,10 @@ sub get_answer {
             }
         }
 
-        $r->{A} = $A;
+        if ($A) {
+            $r->{A} = $A;
+        }
+
     #    p {
     #        r => $r,
     #        p => $p,
@@ -283,39 +286,32 @@ sub binary_search {
         };
     }
 
-    my $p1 = 1_00_00_000_000_000;
-    my $p2 = 100_00_00_000_000_000;
+    my $expected_length = length($prog_str);
+
+    my $p1 =    10_000_000_000_000;
+    my $p2 = 1_000_000_000_000_000;
 
     my $step = 0;
 
     while($p1 <= $p2) {
         $step++;
+        p $step;
         my $middle = int(($p1 + $p2) / 2);
 
         my $new_string = get_answer($content, $middle);
+        my $new_string_length = length($new_string);
 
-        if ($prog_str eq $new_string) {
+        if ($new_string_length == $expected_length) {
             say 'FOUND ANSWER:';
             p $middle;
             die;
         } else {
-            say "Step: $step A: $middle";
-            say "Got     : $new_string";
-            say "Expected: $prog_str";
-            say '';
 
-            my $input;
-            while ( (($input // '') ne 'l') and (($input // '') ne 'r')) {
-                say 'please enter "l" (expected, got) or "r" (got, expected):';
-                $input = <STDIN>;
-                chomp($input);
-            }
-
-            if ($input eq 'l') {
+            if ($new_string_length > $expected_length) {
                 $p2 = $middle - 1;
             }
 
-            if ($input eq 'r') {
+            if ($new_string_length < $expected_length) {
                 $p1 = $middle + 1;
             }
         }
@@ -337,21 +333,18 @@ sub main {
         };
     }
 
-    my $A = 0;
+    my $min = 35_184_372_088_832;
+    my $max = 281_474_976_710_655;
+
+    my $A = $min;
     my $prev_length;
 
+    my $step = 0;
     while(1) {
+        $step++;
 
         my $new_string = get_answer($content, $A);
-        my $new_string_length = length($new_string);
 
-        if ($prev_length) {
-            if ($prev_length > $new_string_length) {
-                die '$prev_length > $new_string_length';
-            }
-        }
-
-        $prev_length = $new_string_length;
 
         my $num1 = $new_string;
         $num1 =~ s/,//g;
@@ -360,19 +353,25 @@ sub main {
 		my $num2 = join '', reverse split //, $num1;
 		$num2 =~ s/^0+//;
 
-        say "$new_string <- got from A: $A";
-        say "$prog_str <- expected";
-        say '';
+if ($new_string =~ /0,3,5,5,3,0\z/) {
+        say "$new_string <- got from A: $A Step: $step";
+}
+#        say "$prog_str <- expected";
+#        say '';
 
-        if ($prog_str eq $new_string) {
-            say 'FOUND ANSWER:';
-            p $A;
-            die;
-        }
 
-        $A += 1;
+#        if ($prog_str eq $new_string) {
+#            say 'FOUND ANSWER:';
+#            p $A;
+#            die;
+#        }
+
+        $A += int(($max-$min) / 1_000_000);
+
+        die if $A > $max;
     }
 
 }
 main();
+#binary_search();
 __END__
