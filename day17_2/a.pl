@@ -337,12 +337,21 @@ sub main {
         };
     }
 
-    my $A = 258386306269182;
+    my $A = 0;
+    my $prev_length;
 
     while(1) {
-        $A+= 100_000_000;
 
         my $new_string = get_answer($content, $A);
+        my $new_string_length = length($new_string);
+
+        if ($prev_length) {
+            if ($prev_length > $new_string_length) {
+                die '$prev_length > $new_string_length';
+            }
+        }
+
+        $prev_length = $new_string_length;
 
         my $num1 = $new_string;
         $num1 =~ s/,//g;
@@ -355,46 +364,15 @@ sub main {
         say "$prog_str <- expected";
         say '';
 
-        if ($new_string =~ /6,0,3,5,5,3,0\z/) {
-            die;
-        }
-
-#        if ($new_string !~ /0,3,5,5,3,0\z/) {
-#            die;
-#        }
-#
-#        if ($new_string =~ /6,0,3,5,5,3,0\z/) {
-#            p $A;
-#            die;
-#        }
-
-#        if ($new_string =~ /5,6,3,0\z/) {
-#            die;
-#        }
-
-
         if ($prog_str eq $new_string) {
             say 'FOUND ANSWER:';
             p $A;
             die;
         }
+
+        $A += 1;
     }
 
 }
 main();
-#my $r = { B => 2024, C => 43690 };
-#
-#run_op(4,0,$r);
-#p $r;
-
 __END__
-
-tests:
-
-If register A contains 10, the program 5,0,5,1,5,4 would output 0,1,2.
-If register A contains 2024, the program 0,1,5,4,3,0 would output 4,2,5,6,7,7,7,7,3,1,0 and leave 0 in register A.
-
-# checked:
-If register B contains 29, the program 1,7 would set register B to 26.
-If register C contains 9, the program 2,6 would set register B to 1.
-If register B contains 2024 and register C contains 43690, the program 4,0 would set register B to 44354.
